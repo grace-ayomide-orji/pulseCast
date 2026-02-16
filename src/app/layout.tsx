@@ -5,11 +5,13 @@ import GeolocationHandler from "@/components/GeolocationHandler";
 import { TopHeadlistfetchNews } from '@/lib/api';
 
 export const metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
   title:{
     default:"PulseCast - News and Weather Updates",
     template:"%s | PulseCast - News and Weather Updates"
   },
-  description:"Get Latest Updates on Weather and New all over the world.",
+  description: "Get Latest Updates on Weather and News all over the world.",
+  keywords: ["weather", "news", "headlines", "forecast", "breaking news", "weather forecast", "weather updates", "weather news", "weather forecast", "weather updates", "weather news"],
   icons:{
     icon: [
     { url: "/favicon/favicon-96x96.png", sizes: "96x96", type: "image/png" },
@@ -52,8 +54,15 @@ const inter = Inter({
 
 async function getInitialNewsData() {
   try {
-    const newsData = await TopHeadlistfetchNews();
-    return newsData;
+    const result = await TopHeadlistfetchNews();
+
+       // If there's an error, return it
+       if ("error" in result) {
+        return result;
+      }
+      
+      // Otherwise, extract just the articles array
+      return result.articles;
   } catch (error) {
     console.error("Failed to fetch initial news:", error);
     return { error: "Failed to load news" };

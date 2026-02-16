@@ -1,17 +1,23 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useSearchParams, useRouter } from "next/navigation";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { useData } from "@/lib/DataContext";
-import { NewsData } from '@/lib/api';
+import type { NewsData } from '@/lib/types';
 import { formatNewsDate } from '@/lib/dateUtils';
+import PaginationControls from "@/components/paginationControls";
+import { Loader } from "@/components/Loader";
+
+const ITEMS_PER_PAGE = 10;
 
 export default function SearchPage() {
-  const { updateSearch, searchData, isLoading } = useData();
+  const router = useRouter();
+  const { updateSearch, searchData, isLoading, searchPagination } = useData();
   const [query, setQuery] = useState("");
   const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const searchParams = useSearchParams();
+  const [currentPage, setCurrentPage] = useState(1);
 
   // Load search history from localStorage
   useEffect(() => {
@@ -41,17 +47,28 @@ export default function SearchPage() {
 
   const handleHistoryClick = (historyQuery: string) => {
     setQuery(historyQuery);
-    updateSearch(historyQuery);
+    setCurrentPage(1);
+    router.push(`/search?q=${encodeURIComponent(historyQuery)}&page=1`);
+    updateSearch(historyQuery, 1, ITEMS_PER_PAGE);
     saveToHistory(historyQuery);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    router.push(`/search?q=${encodeURIComponent(query)}&page=${page}`);
+    updateSearch(query, page, ITEMS_PER_PAGE);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
     <div className="parent mt-[40px] mb-[40px]">
       <Card className="border-none rounded-none shadow-none">
         <CardHeader className="text-center">
-          <CardTitle className="text-3xl font-bold text-primary-color">
-            Search Results {query && `for "${query}"`}
-          </CardTitle>
+        <CardTitle className="text-3xl font-bold text-primary-color">
+          {(searchPagination?.totalResults ?? "") && `${searchPagination?.totalResults} `}
+          Search Results
+          {query && ` for "${query}"`}
+        </CardTitle>
         </CardHeader>
 
         <CardContent>
@@ -76,10 +93,7 @@ export default function SearchPage() {
 
           {/* Search Results */}
           {isLoading ? (
-            <div className="text-center py-8">
-              <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              <p className="mt-2 text-gray-600">{`Searching for "${query}"...`}</p>
-            </div>
+            <Loader className="mt-10" />
           ) : searchData === null ? (
             <div className="text-center text-gray-500 py-8">
               <p>Enter a search term in the navbar to find news articles</p>
@@ -156,6 +170,17 @@ export default function SearchPage() {
             </div>
           )}
         </CardContent>
+
+        <CardFooter className="flex justify-end">
+          {searchPagination && searchPagination.totalPages > 1 && (
+            <PaginationControls
+              currentPage={currentPage}
+              totalPages={searchPagination.totalPages}
+              isLoading={isLoading}
+              onPageChange={handlePageChange}
+            />
+          )}
+        </CardFooter>
       </Card>
     </div>
   );

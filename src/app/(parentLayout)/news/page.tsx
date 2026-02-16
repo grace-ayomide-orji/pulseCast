@@ -3,13 +3,19 @@
 import Link from "next/link";
 import { useData } from "@/lib/DataContext";
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { NewsData } from '@/lib/api';
+import { Card, CardContent, CardHeader, CardTitle , CardFooter} from "@/components/ui/card";
+import type { NewsData } from '@/lib/types';
 import { formatNewsDate } from '@/lib/dateUtils';
+import PaginationControls from "@/components/paginationControls";
+import { Loader } from "@/components/Loader";
+
+const ITEMS_PER_PAGE = 10;
 
 export default function NewsPage() {
-  const { newsData, refreshNews, newsMode, setNewsMode, isLoading } = useData(); 
+  const { newsData, newsPagination, refreshNews, newsMode, setNewsMode, isLoading } = useData(); 
   const [isTimedOut, setIsTimedOut] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       if (newsData === null) { 
@@ -22,14 +28,21 @@ export default function NewsPage() {
 
   const handleRetry = () => {
     setIsTimedOut(false);
-    refreshNews();
+    refreshNews(newsMode, currentPage, ITEMS_PER_PAGE);
   };
-
+  
   const handleModeChange = (newMode: 'headlines' | 'all') => {
     if (newMode !== newsMode) {
       setNewsMode(newMode);
-      refreshNews(newMode);
+      setCurrentPage(1);
+      refreshNews(newMode, 1, ITEMS_PER_PAGE);
     }
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    refreshNews(newsMode, page, ITEMS_PER_PAGE);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
@@ -40,35 +53,54 @@ export default function NewsPage() {
           <CardTitle className="text-3xl font-bold text-primary-color mb-[20px]">
             Latest News
           </CardTitle>
-            {/* Mode Toggle Buttons */}
-          <div className="flex justify-center gap-4 pb-[10px] border-b border-b-primary-color">
-            <button
-              onClick={() => handleModeChange('headlines')}
-              disabled={isLoading}
-              className={`px-4 py-[5px] rounded-[20px] transition-colors ${
-                newsMode === 'headlines'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              Headlines
-            </button>
-            <button
-              onClick={() => handleModeChange('all')}
-              disabled={isLoading}
-              className={`px-4 py-[5px] rounded-[20px] transition-colors ${
-                newsMode === 'all'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-              }`}
-            >
-              All News
-            </button>
+          {/* Mode Toggle Buttons */}
+          <div className="pb-[10px] border-b border-b-primary-color">
+            {/* Buttons container with relative positioning */}
+            <div className="relative flex justify-center gap-4">
+              <button
+                onClick={() => handleModeChange('headlines')}
+                disabled={isLoading}
+                className={`px-4 py-[5px] rounded-[20px] transition-colors ${
+                  newsMode === 'headlines'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                Headlines
+              </button>
+              <button
+                onClick={() => handleModeChange('all')}
+                disabled={isLoading}
+                className={`px-4 py-[5px] rounded-[20px] transition-colors ${
+                  newsMode === 'all'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                }`}
+              >
+                All News
+              </button>
+
+              {/* Desktop: Absolute positioned to right */}
+              {newsPagination && (
+                <div className="hidden md:block absolute bottom-0 right-0 text-sm text-gray-600">
+                  ({newsPagination.totalResults} total articles)
+                </div>
+              )}
+            </div>
+
+            {/* Mobile: Separate line below buttons */}
+            {newsPagination && (
+              <div className="md:hidden mt-2 text-sm text-gray-600">
+                ({newsPagination.totalResults} total articles)
+              </div>
+            )}
           </div>
         </CardHeader>
         
         <CardContent className="space-y-6">
-          {newsData === null && !isTimedOut ? (
+          { isLoading ? (
+            <Loader className="mt-10"  />
+          ): newsData === null && !isTimedOut ? (
             <div className="py-8 text-center">
               <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
               <p className="mt-2 text-gray-600">Loading news...</p>
@@ -95,12 +127,14 @@ export default function NewsPage() {
                 Try Again
               </button>
             </div>
-          ) : newsData &&  newsData.length === 0 ? (
+          ) : newsData && Array.isArray(newsData) && newsData.length === 0 ? (
             <div className="py-8 text-center text-gray-600">
               <p>No news articles available at the moment.</p>
             </div>
-          ) : newsData ? (
-             newsData.map((news: NewsData) => (
+          ): newsData && Array.isArray(newsData) && newsData.length > 0 ? (
+            <>
+            {newsData.map((news: NewsData) => (
+             
               <div key={news.id} className="p-4 transition-shadow border rounded-lg hover:shadow-md">
                   <div className="flex flex-col items-center gap-4 md:flex-row">
                       {/* News Image */}
@@ -146,13 +180,25 @@ export default function NewsPage() {
                       </div>
                   </div>
               </div>
-            ))
+            ))}
+            </>
           ): (
             <div className="py-8 text-center text-gray-600">
               <p>Unexpected state occurred.</p>
             </div>
           )}
         </CardContent>
+
+        <CardFooter className="flex justify-end">
+          {!isLoading && newsPagination && newsPagination.totalPages > 1 && (
+            <PaginationControls
+              currentPage={currentPage}
+              totalPages={newsPagination.totalPages}
+              isLoading={isLoading}
+              onPageChange={handlePageChange}
+            />
+          )}
+        </CardFooter>
       </Card>
     </div>
   );

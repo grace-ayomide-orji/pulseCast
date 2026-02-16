@@ -1,36 +1,7 @@
 import { generateIdFromUrl } from "./hashUtils";
+import type { WeatherData, NewsData, NewsApiResponse, NewsApiArticle } from "./types";
 
-interface NewsApiArticle {
-  title: string;
-  description: string;
-  url: string;
-  content: string;
-  source: { name: string; id: string | null };
-  urlToImage: string | null;
-  publishedAt: string;
-}
-
-interface WeatherData {
-  city: string;
-  temp: number;
-  condition: string;
-  alert?: string;
-  timezone: number; 
-  forecast?: { date: string; temp: number; condition: string }[];
-}
-
-export interface NewsData {
-  id: string;
-  title: string;
-  description: string;
-  content: string; 
-  url: string;
-  source: string;
-  sourceId: string;
-  publishedAt?: string;
-  imageUrl?: string;
-  country?: string;
-}
+// weather api service
 
 export async function fetchWeather(city: string): Promise<WeatherData | { error: string }> {
   if (!process.env.OPENWEATHER_API_KEY) {
@@ -155,18 +126,20 @@ export async function fetchCityByIP(): Promise<string | null> {
   }
 }
 
-export async function TopHeadlistfetchNews(source: string = ""): Promise<NewsData[] | { error: string }> {
+// news api service
+
+export async function TopHeadlistfetchNews(source: string = "", page: number = 1, pageSize: number = 10): Promise<{ articles: NewsData[]; totalResults: number } | { error: string }> {
   const sources = source.trim() !== "" ? source : 'bbc-news,cnn,reuters,associated-press,the-verge';
   try {
-    const url = `https://newsapi.org/v2/top-headlines?sources=${sources}&apiKey=${process.env.NEWSAPI_KEY}`;
-    const res = await fetch(url, { cache: "no-store" });
+    const url = `https://newsapi.org/v2/top-headlines?sources=${sources}&page=${page}&pageSize=${pageSize}&apiKey=${process.env.NEWSAPI_KEY}`;
+    const res = await fetch(url, { next: { revalidate: 300 } }); // Cache for 5 minutes
     
     if (!res.ok) {
       const errData = await res.json();
       return { error: errData.message || `News API failed with status ${res.status}` };
     }
     
-    const data = await res.json();
+    const data: NewsApiResponse = await res.json();
     const articles = data.articles
       .filter((article: NewsApiArticle) => article.title && article.description && article.url && article.content && article.url && article.source.name)
       .map((article: NewsApiArticle) => ({
@@ -180,7 +153,11 @@ export async function TopHeadlistfetchNews(source: string = ""): Promise<NewsDat
         imageUrl:article.urlToImage,
         publishedAt: article.publishedAt
       }));
-    return articles.length >= 2 ? articles : { error: "Insufficient valid news articles available." };
+      
+    return articles.length > 0 ? {
+      articles : articles,
+      totalResults: data.totalResults,
+    } : { error: "No news articles available." };
   } catch (error) {
     console.error("TopHeadlistfetchNews API Error:", error);
     return { error: "Network error or API unavailable. Please try again later." };
@@ -193,13 +170,14 @@ export async function AllfetchNews(
     language?: string;
     sortBy?: string;
     pageSize?: number;
-    country?: string; // Add country parameter
+    page?: number;
+    country?: string;
   } = {}
-): Promise<NewsData[] | { error: string }> {
+): Promise<{ articles: NewsData[]; totalResults: number } | { error: string }> {
   try {
-    const { language = "en", sortBy = "publishedAt", pageSize = 20, country = "" } = options;
+    const { language = "en", sortBy = "publishedAt", pageSize = 20, page = 1, country = "" } = options;
     let url: string;
-    const baseParams = `language=${language}&pageSize=${pageSize}&apiKey=${process.env.NEWSAPI_KEY}`;
+    const baseParams = `language=${language}&pageSize=${pageSize}&page=${page}&apiKey=${process.env.NEWSAPI_KEY}`;
     const countryParam = country ? `&country=${country}` : '';
     
     if (keyword.trim() !== "") {
@@ -207,12 +185,14 @@ export async function AllfetchNews(
     } else {
       url = `https://newsapi.org/v2/top-headlines?${baseParams}${countryParam}`;
     }
-    const res = await fetch(url, { cache: "no-store" }); 
+
+    const res = await fetch(url, { next: { revalidate: 300 } }); // Cache for 5 minutes
     if (!res.ok) {
       const errData = await res.json();
       return { error: errData.message || `News API failed with status ${res.status}` };
     }
-    const data = await res.json(); 
+
+    const data: NewsApiResponse = await res.json(); 
     const articles = data.articles
       .filter((article: NewsApiArticle) => article.title && article.description && article.url && article.content && article.url && article.source.name)
       .map((article: NewsApiArticle) => ({
@@ -226,7 +206,10 @@ export async function AllfetchNews(
         imageUrl:article.urlToImage,
         publishedAt: article.publishedAt
       }));  
-    return articles.length >= 2 ? articles : { error: "Insufficient valid news articles available." };
+    return articles.length > 0 ? {
+      articles: articles,
+      totalResults: data.totalResults,
+    } : { error: "No news articles available." };
   } catch (error) {
     console.error("All New API Error:", error);
     return { error: "Network error or API unavailable. Please try again later." };

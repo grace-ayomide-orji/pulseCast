@@ -1,25 +1,31 @@
-import { NextResponse } from 'next/server';
+import { NextResponse, NextRequest } from 'next/server';
 import { AllfetchNews } from '@/lib/api';
-import { getCachedArticleResults, cacheArticleResults } from '@/lib/newsCache';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+
   try {
-    const cacheKey = 'all-news';
-    
-    const cachedResults = getCachedArticleResults(cacheKey);
-    if (cachedResults) {
-      return NextResponse.json(cachedResults);
-    }
-
-    const news = await AllfetchNews("", {
-      pageSize: 30,
+    const { searchParams } = new URL(request.url);
+    const page = parseInt(searchParams.get('page') ||  "1");
+    const pageSize = parseInt(searchParams.get('pageSize') ||  "30");
+  
+    const result = await AllfetchNews("", {
+      pageSize,
+      page,
     });
     
-    if (!("error" in news)) {
-      cacheArticleResults(cacheKey, news);
+    if ("error" in result) {
+      return NextResponse.json(result, { status: 500 });
     }
 
-    return NextResponse.json(news);
+    return NextResponse.json({
+      articles: result.articles,
+      pagination: {
+        page,
+        pageSize,
+        totalResults: result.totalResults,
+        totalPages: Math.ceil(result.totalResults / pageSize)
+      }
+    });
   } catch (error) {
     console.error('All news fetch error:', error);
     return NextResponse.json(

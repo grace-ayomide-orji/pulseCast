@@ -6,6 +6,7 @@ import { useState, useEffect, useRef } from "react";
 import { RxHamburgerMenu } from "react-icons/rx";
 import { TiTimes } from "react-icons/ti";
 import { TbSearch } from "react-icons/tb";
+import { Loader2 } from "lucide-react";
 
 const Navbar = () => {
     const [width, setWidth] = useState(0)
@@ -71,7 +72,36 @@ const Navbar = () => {
         }
     }, [searchQuery]);
 
-    // Close suggestions when clicking outside
+    // Close sidebar when clicking outside
+    useEffect(() => {
+        const sidebarRef = document.querySelector('.nav-links-container');
+        
+        const handleClickOutside = (event: MouseEvent) => {
+            const target = event.target as Node;
+            // Close if clicking outside sidebar and not on the toggle button
+            if (
+                isTogglerOpen && 
+                sidebarRef && 
+                !sidebarRef.contains(target) &&
+                !(target as Element).closest('.toggler-icon') &&
+                !(target as Element).closest('button[class*="toggler"]')
+            ) {
+                setisTogglerOpen(false);
+            }
+        };
+    
+        if (isTogglerOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+    
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [isTogglerOpen]);
+
+    useEffect(() => {
+        setisTogglerOpen(false);
+    }, [pathname]);
+
+    // Close suggestions when clicking outside 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
@@ -79,15 +109,18 @@ const Navbar = () => {
             }
         };
 
-        document.addEventListener('mousedown', handleClickOutside);
+        if (showSuggestions) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
         return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
+    }, [showSuggestions]);
 
     // handle search submit to go to search page
     const handleSearch = (e: React.FormEvent) => {
         e.preventDefault();
         if (searchQuery.trim()) {
-            router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}`);
+            router.push(`/search?q=${encodeURIComponent(searchQuery.trim())}&page=1`);
             setShowSuggestions(false);
             setSearchQuery(searchQuery);                                                        
         }
@@ -95,7 +128,7 @@ const Navbar = () => {
 
     const handleSuggestionClick = (suggestion: string) => {
         console.log(suggestion)
-        router.push(`/search?q=${encodeURIComponent(suggestion)}`);
+        router.push(`/search?q=${encodeURIComponent(suggestion)}&page=1`);
         setShowSuggestions(false);
         setSearchQuery(suggestion);
         setSelectedOption(suggestion)
@@ -116,7 +149,7 @@ const Navbar = () => {
                             <Image src="/images/logo_blue.png" alt="Pulsecast Logo" fill sizes="100vw" className="object-contain" />
                         </Link>
                         
-                        {/* Search Box with Suggestions and no suggestion alert*/}
+                        {/* Search Box with Suggestions and no suggestion found alert*/}
                         <div ref={searchRef} className="relative w-[70%]">
                             <form onSubmit={handleSearch} className="rounded-[30px] h-[42px] pl-[15px] bg-anti-flash-white w-full flex items-center">
                                 <input 
@@ -133,14 +166,14 @@ const Navbar = () => {
                                     disabled={isLoading}
                                 >
                                     {isLoading ? (
-                                        <span className="loader submiting-search border-2 w-[20px] h-[20px]"></span>
+                                        <Loader2 className="text-[20px] animate-spin" />
                                     ) : (
                                         <TbSearch className="text-[20px]" />
                                     )}
                                 </button>
                             </form>
 
-                            {showSuggestions && suggestions.length > 1 && (
+                            {showSuggestions && suggestions.length > 0 && (
                                 <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-[1000] max-h-60 overflow-y-auto">
                                     {suggestions.map((suggestion, index) => (
                                         <button
@@ -165,11 +198,6 @@ const Navbar = () => {
                                 </div>
                             )}
 
-                            {showSuggestions && searchQuery.length > 1 && suggestions.length === 0 && !isLoading && (
-                                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 p-4">
-                                    <p className="text-gray-500 text-center">No suggestions found</p>
-                                </div>
-                            )}
                         </div>
                     </div>
 
@@ -205,15 +233,26 @@ const Navbar = () => {
                 </nav>
             :
                 <nav className="md:hidden parent">
+
+                   
+
                     <div className="flex items-center justify-between py-[15px]">
                         <Link href='/' className="inline-block relative w-[100px] h-[40px] z-[1000000]">
                             <Image src="/images/logo_blue.png" alt="Pulsecast Logo" fill sizes="100vw" className="object-contain" />
                         </Link>
                         
-                        <button className="text-[25px] text-[#333333]" onClick={() => (setisTogglerOpen(prev => !prev))}>
-                            {isTogglerOpen ? <TiTimes className="toggler-icon text-[#888888]"/> : <RxHamburgerMenu className="toggler-icon text-[#888888]"/>}
+                        <button className="text-[25px] text-[#888888]" onClick={() => (setisTogglerOpen(prev => !prev))}>
+                            {isTogglerOpen ? <TiTimes className="toggler-icon text-[#2563EB]"/> : <RxHamburgerMenu className="toggler-icon"/>}
                         </button>
                     </div>
+
+                    {isTogglerOpen && (
+                        <div 
+                            className="fixed inset-0 bg-black bg-opacity-50 z-[99999]"
+                            onClick={() => setisTogglerOpen(false)}
+                            aria-hidden="true"
+                        />
+                    )}
 
                     {/* Search Box with Suggestions and no suggestion alert*/}
                     <div ref={searchRef} className="relative w-[90%] mx-auto mt-[10px]">
@@ -238,38 +277,31 @@ const Navbar = () => {
                                 className="bg-transparent outline-none flex-1 caret-primary-color placeholder:text-[#768196] text-[13px] px-0"
                             />
                         </form>
-
-                        
-                            {showSuggestions && suggestions.length > 1 && (
-                                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-[1000] max-h-60 overflow-y-auto">
-                                    {suggestions.map((suggestion, index) => (
-                                        <button
-                                            key={index}
-                                            className="px-4 py-3 cursor-pointer hover:bg-gray-100 transition-colors w-full text-left"
-                                            type="button"
-                                            onClick={() => {handleSuggestionClick(suggestion);}}
-                                            onKeyDown={(e) => {
-                                                if (e.key === 'Enter' || e.key === ' ') {
-                                                    handleSuggestionClick(suggestion);
-                                                }
-                                            }}
-                                            role="option"
-                                            aria-selected={selectedOption === suggestion}
-                                        >
-                                            <div className="flex items-center gap-2">
-                                                <TbSearch className="text-gray-400 text-sm" />
-                                                <span className="text-gray-700">{suggestion}</span>
-                                            </div>
-                                        </button>
-                                    ))}
-                                </div>
-                            )}
-
-                            {showSuggestions && searchQuery.length > 1 && suggestions.length === 0 && !isLoading && (
-                                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 p-4">
-                                    <p className="text-gray-500 text-center">No suggestions found</p>
-                                </div>
-                            )}
+ 
+                        {showSuggestions && suggestions.length > 1 && (
+                            <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-[1000] max-h-60 overflow-y-auto">
+                                {suggestions.map((suggestion, index) => (
+                                    <button
+                                        key={index}
+                                        className="px-4 py-3 cursor-pointer hover:bg-gray-100 transition-colors w-full text-left"
+                                        type="button"
+                                        onClick={() => {handleSuggestionClick(suggestion);}}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                handleSuggestionClick(suggestion);
+                                            }
+                                        }}
+                                        role="option"
+                                        aria-selected={selectedOption === suggestion}
+                                    >
+                                        <div className="flex items-center gap-2">
+                                            <TbSearch className="text-gray-400 text-sm" />
+                                            <span className="text-gray-700">{suggestion}</span>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        )}
                     </div>
 
                     <ul className={`nav-links-container xxsm:w-[80%] xsm:w-[60%] sm:w-[50%] z-[100000] px-[20px] ${isTogglerOpen ? 'open' : 'close'}`}>

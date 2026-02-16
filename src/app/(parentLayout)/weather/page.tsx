@@ -1,9 +1,11 @@
 "use client";
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { TbSearch, TbRefresh } from "react-icons/tb";
+import { TbSearch, TbRefresh, TbLoader } from "react-icons/tb";
 import { useData } from "@/lib/DataContext";
 import { formatTimeForTimezone } from "@/lib/timeUtils";
+import { Loader } from "@/components/Loader";
+
 
 export default function WeatherPage() {
     const { weatherData, updateWeather, isLoading: contextLoading } = useData();
@@ -57,16 +59,27 @@ export default function WeatherPage() {
     // Loading state
     if (contextLoading && !weatherData) {
         return (
-            <div className="flex items-center justify-center min-h-screen">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-                <span className="ml-3">Loading weather...</span>
-            </div>
+            <Loader className="mt-10"  />
         );
     }
 
     return (
         <div className="parent mt-[40px] mb-[40px]">
-            <Card className="bg-[#2563eb] hover:shadow-lg min-h-[80vh]">
+            <Card className="relative bg-[#2563eb] hover:shadow-lg min-h-[80vh]">
+
+                {!showWeatherInput && (
+                    <button 
+                        onClick={handleRefresh}
+                        disabled={isLoading}
+                        className="absolute top-2 right-2 p-2 text-white bg-blue-700 rounded-full hover:bg-blue-800 disabled:opacity-50"
+                    >
+                        {
+                            isLoading ? <TbLoader className="text-xl animate-spin" /> : <TbRefresh className="text-xl" />
+
+                        }
+                    </button>
+                )}
+
                 <CardHeader className="pb-2 text-center">
                     <CardTitle>
                         <img src="/images/sun_cloud.png" alt="Cloud and Sun Icon" className="inline-block w-[100px]" />
@@ -74,32 +87,19 @@ export default function WeatherPage() {
                     </CardTitle>
                 </CardHeader>
                 
-                <CardContent className="flex flex-col items-center justify-center text-center mt-[10px]">
-                    <div className="flex items-center gap-2">
-                        <form onSubmit={handleCitySubmit} className="font-medium text-[#708090] bg-white rounded-[15px] py-[10px] px-[10px] my-[5px] sm:min-w-[350px] min-w-[60%] w-fit flex items-center justify-between">
-                            <input
-                                type="text"
-                                value={city}
-                                onChange={(e) => setCity(e.target.value)}
-                                placeholder="Enter city name"
-                                className="outline-none flex-1 mr-[10px] text-black"
-                                readOnly={isLoading}
-                            />
-                            <button type="submit" className="flex items-center justify-center text-primary-color" disabled={isLoading}>
-                                {isLoading ? <span className="loader submiting-search border-2 w-[13px] h-[13px]"></span>: <TbSearch className="text-[18px] text-primary-color font-bold" />}
-                            </button>
-                        </form>
-                        {!showWeatherInput && (
-                            <button 
-                                onClick={handleRefresh}
-                                disabled={isLoading}
-                                className="p-2 text-white bg-blue-700 rounded-full hover:bg-blue-800 disabled:opacity-50"
-                            >
-                                <TbRefresh className="text-xl" />
-                            </button>
-                        )}
-                    </div>
-                </CardContent>
+                <form onSubmit={handleCitySubmit} className="font-medium text-[#708090] bg-white rounded-[15px] py-[10px] px-[10px] my-[5px] md:w-[60%] sm:w-[80%] w-[98%] mx-auto flex items-center justify-between mb-8">
+                    <input
+                        type="text"
+                        value={city}
+                        onChange={(e) => setCity(e.target.value)}
+                        placeholder="Enter city name"
+                        className="outline-none flex-1 mr-[10px] text-black"
+                        readOnly={isLoading}
+                    />
+                    <button type="submit" className="flex items-center justify-center text-primary-color" disabled={isLoading}>
+                        {isLoading ? <span className="loader submiting-search border-2 w-[13px] h-[13px]"></span>: <TbSearch className="text-[18px] text-primary-color font-bold" />}
+                    </button>
+                </form>
 
                 {showWeatherInput ? (
                     <p className="text-center text-white my-[5px] w-[80%] mx-auto">
