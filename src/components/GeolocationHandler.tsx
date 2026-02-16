@@ -14,7 +14,6 @@ export default function GeolocationHandler() {
     }
     currentCityRef.current = city;
     intervalRef.current = setInterval(async () => {
-      console.log(`Polling weather for ${city} at ${new Date().toISOString()}`);
       await updateWeather(city);
     }, 600000); // 10 minutes
   };
@@ -22,7 +21,6 @@ export default function GeolocationHandler() {
   const getLocation = async () => {
     const storedCity = localStorage.getItem("lastCity");
     if (storedCity) {
-      console.log(`Using stored city: ${storedCity}`);
       await updateWeather(storedCity);
       startWeatherPolling(storedCity);
       return;
@@ -32,26 +30,20 @@ export default function GeolocationHandler() {
       navigator.geolocation.getCurrentPosition(
         async (position) => {
           const { latitude, longitude } = position.coords;
-          console.log(`Geolocation success: lat=${latitude}, lon=${longitude}`);
           const result = await updateWeatherByCoords(latitude, longitude);
           if (!("error" in result) && result.city) {
-            console.log(`Storing city: ${result.city}`);
             localStorage.setItem("lastCity", result.city);
             startWeatherPolling(result.city);
           }
         },
         async (error) => {
-          console.error("Geolocation error:", error);
           const city = await fetchCityByIP();
           if (city) {
-            console.log(`IP-based city: ${city}`);
             const result = await updateWeather(city);
             if (!("error" in result) && result.city) {
               localStorage.setItem("lastCity", result.city);
               startWeatherPolling(result.city);
             }
-          } else {
-            console.error("Failed to fetch city by IP");
           }
         },
         {
@@ -60,17 +52,13 @@ export default function GeolocationHandler() {
         }
       );
     } else {
-      console.error("Geolocation not supported");
       const city = await fetchCityByIP();
       if (city) {
-        console.log(`IP-based city: ${city}`);
         const result = await updateWeather(city);
         if (!("error" in result) && result.city) {
           localStorage.setItem("lastCity", result.city);
           startWeatherPolling(result.city);
         }
-      } else {
-        console.error("Failed to fetch city by IP");
       }
     }
   };
@@ -84,7 +72,6 @@ export default function GeolocationHandler() {
     getLocation();
 
     return () => {
-      console.log("Cleaning up GeolocationHandler interval and event listener");
       if (intervalRef.current) clearInterval(intervalRef.current);
       window.removeEventListener("resetWeatherPolling", handleResetPolling as EventListener);
     };

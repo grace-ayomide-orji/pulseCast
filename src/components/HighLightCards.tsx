@@ -6,13 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TbSearch } from "react-icons/tb";
 import { useData } from "@/lib/DataContext";
 import { formatTimeForTimezone } from "@/lib/timeUtils";
-import { NewsData } from '@/lib/api';
+import type { NewsData } from '@/lib/types';
 
 export default function HighlightCards() {
     const { weatherData, newsData, updateWeather, refreshNews } = useData();
     const [city, setCity] = useState<string>("");
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [isTimedOut, setIsTimedOut] = useState(false);
+    
     useEffect(() => {
         const timeoutId = setTimeout(() => {
         if (newsData === null) { 

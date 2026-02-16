@@ -1,6 +1,6 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer"
-export default function parentLayouts({children,}: { children: React.ReactNode }) {
+export default function parentLayouts({children}: { children: React.ReactNode }) {
   return (
     <>
       <header>

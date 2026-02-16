@@ -1,39 +1,19 @@
 "use client";
 
-import { createContext, useContext, ReactNode, useState, useEffect, useCallback } from "react";
-import { cacheArticleResults, getCachedArticleResults, cacheArticle } from "./newsCache";
-
-interface WeatherData {
-  city: string;
-  temp: number;
-  condition: string;
-  alert?: string;
-  timezone: number; 
-  forecast?: { date: string; temp: number; condition: string }[];
-}
-
-export interface NewsData {
-  id: string;
-  title: string;
-  description: string;
-  content: string;
-  url: string;
-  source: string;
-  sourceId: string;
-  publishedAt?: string;
-  imageUrl?: string;
-  country?: string;
-}
+import { createContext, useContext, ReactNode, useState, useCallback } from "react";
+import type { WeatherData, NewsData, PaginationInfo } from "./types";
 
 interface DataContextType {
   weatherData: WeatherData | { error: string } | null;
   newsData: NewsData[] | { error: string } | null;
+  newsPagination: PaginationInfo | null;
   searchData: NewsData[] | { error: string } | null;
+  searchPagination: PaginationInfo | null;
   isLoading: boolean;
   newsMode: 'headlines' | 'all';
   setNewsMode: (mode: 'headlines' | 'all') => void;
-  refreshNews: (mode?: 'headlines' | 'all') => Promise<void>; 
-  updateSearch: (query: string) => Promise<NewsData[] | { error: string }>;
+  refreshNews: (mode?: 'headlines' | 'all', page?: number, pageSize?: number) => Promise<void>; 
+  updateSearch: (query: string, page?: number, pageSize?: number) => Promise<NewsData[] | { error: string }>;
   updateWeather: (city: string) => Promise<WeatherData | { error: string }>;
   updateWeatherByCoords: (lat: number, lon: number) => Promise<WeatherData | { error: string }>;   
 }
@@ -73,16 +53,12 @@ export function DataProvider({
 }: DataProviderProps) {
   const [weatherData, setWeatherData] = useState<WeatherData | { error: string } | null>(initialWeatherData);
   const [newsData, setNewsData] = useState<NewsData[] | { error: string } | null>(initialNewsData);
+  const [searchPagination, setSearchPagination] = useState<PaginationInfo | null>(null);
+  const [newsPagination, setNewsPagination] = useState<PaginationInfo | null>(null);
   const [searchData, setSearchData] = useState<NewsData[] | { error: string } | null>(initialSearchData);
   const [isLoading, setIsLoading] = useState(false);
   const [newsMode, setNewsMode] = useState<'headlines' | 'all'>('headlines');
   
-  useEffect(() => {
-    if (newsData && !("error" in newsData)) {
-      newsData.forEach(article => cacheArticle(article));
-    }
-  }, [newsData]);
-
   const updateWeather = useCallback(async (city: string) => {
     setIsLoading(true);
     try {
@@ -133,35 +109,29 @@ export function DataProvider({
     }
   }, []);
 
-  const updateSearch = useCallback(async (query: string) => {
+  const updateSearch = useCallback(async (query: string, page: number = 1, pageSize: number = 10) => {
     if (!query.trim()) {
       setSearchData(null);
       return [];
     }
     
-    // Check cache first
-    const cachedResults = getCachedArticleResults(query);
-    if (cachedResults) {
-      setSearchData(cachedResults);
-      return cachedResults;
-    }
     setIsLoading(true);
     try {
-      const res = await fetchWithTimeout(`/api/search-result?query=${encodeURIComponent(query)}`, {}, 10000);
+      const res = await fetchWithTimeout(`/api/search-result?query=${encodeURIComponent(query)}&page=${page}&pageSize=${pageSize}`, {}, 10000);
       if (!res.ok) {
         const errorText = await res.text();
         throw new Error(`Search failed: ${res.status} ${errorText}`);
       }
-      const newSearchResults = await res.json();
-      
-      if (!("error" in newSearchResults)) {
-        cacheArticleResults(query, newSearchResults);
-        setSearchData(newSearchResults);
+      const response = await res.json();
+      if ("error" in response) {
+        setSearchData(response);
+        setSearchPagination(null);
       } else {
-        setSearchData(newSearchResults);
+        setSearchData(response.articles);
+        setSearchPagination(response.pagination);
       }
       
-      return newSearchResults;
+      return response.articles || response;
     } catch (error) {
       const isAbortError = error instanceof Error && error.name === 'AbortError';
       const errorMessage = isAbortError 
@@ -170,33 +140,35 @@ export function DataProvider({
       
       const errorObj = { error: errorMessage };
       setSearchData(errorObj);
+      setSearchPagination(null);
       return errorObj;
     } finally {
       setIsLoading(false);
     }
   }, []);
 
-  const refreshNews = useCallback(async (mode?: 'headlines' | 'all') => {
+  const refreshNews = useCallback(async (mode?: 'headlines' | 'all', page: number = 1, pageSize: number = 10) => {
     const currentMode = mode || newsMode;
     setIsLoading(true);
     try {
-      const cachedNews = getCachedArticleResults(currentMode === 'headlines' ? 'headlines' : 'all');
-      if (cachedNews && cachedNews.length > 0) {
-        setNewsData(cachedNews);
-      }
-      const endpoint = currentMode === 'headlines' ? '/api/news/headlines' : '/api/news/all';
+
+      const endpoint = currentMode === 'headlines' 
+      ? `/api/news/headlines?page=${page}&pageSize=${pageSize}` 
+      : `/api/news/all?page=${page}&pageSize=${pageSize}`;
+
       const res = await fetchWithTimeout(endpoint, {}, 10000);
       if (!res.ok) {
         const errorText = await res.text();
         throw new Error(`News API failed: ${res.status} ${errorText}`);
       }
 
-      const newNews = await res.json();
-      if (!("error" in newNews)) {
-        setNewsData(newNews);
-        cacheArticleResults(currentMode === 'headlines' ? 'headlines' : 'all', newNews);
+      const response = await res.json();
+      
+      if ("error" in response) {
+        setNewsData(response);
       } else {
-        setNewsData(newNews);
+        setNewsData(response.articles);
+        setNewsPagination(response.pagination);
       }
     } catch (error) {
       const isAbortError = error instanceof Error && error.name === 'AbortError';
@@ -204,11 +176,8 @@ export function DataProvider({
         ? 'News refresh timed out. Using cached data.' 
         : 'Failed to refresh news. Using cached data if available.';
       
-      // Try to get cached data as fallback
-      const cachedNews = getCachedArticleResults(newsMode === 'headlines' ? 'headlines' : 'all');
-      if (!cachedNews || cachedNews.length === 0) {
-        setNewsData({ error: errorMessage });
-      }
+      setNewsData({ error: errorMessage });
+      setNewsPagination(null);
     } finally {
       setIsLoading(false);
     }
@@ -218,7 +187,9 @@ export function DataProvider({
     <DataContext.Provider value={{ 
       weatherData, 
       newsData, 
+      newsPagination,
       searchData,
+      searchPagination,
       isLoading,
       newsMode,
       setNewsMode,
