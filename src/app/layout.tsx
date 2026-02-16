@@ -54,7 +54,7 @@ const inter = Inter({
 
 async function getInitialNewsData() {
   try {
-    const result = await TopHeadlistfetchNews();
+    const result = await TopHeadlistfetchNews("", 1, 10);
 
        // If there's an error, return it
        if ("error" in result) {

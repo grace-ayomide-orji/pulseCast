@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TbSearch } from "react-icons/tb";
 import { useData } from "@/lib/DataContext";
 import { formatTimeForTimezone } from "@/lib/timeUtils";
 import type { NewsData } from '@/lib/types';
+import SafeNewsImage from "@/components/SafeNewsImage";
 
 export default function HighlightCards() {
     const { weatherData, newsData, updateWeather, refreshNews } = useData();
@@ -68,7 +70,7 @@ export default function HighlightCards() {
         <Card className="transition-shadow bg-[#2563eb] hover:shadow-lg md:h-[320px] flex flex-col items-center justify-center">
             <CardHeader className="pb-2 text-center">
             <CardTitle>
-                <img src="/images/sun_cloud.png" alt="Cloud and Sun Icon" className="inline-block lg:w-[100px] xxsm:w-[65px]" />
+                <Image src="/images/sun_cloud.png" alt="Cloud and Sun Icon" className="inline-block lg:w-[100px] xxsm:w-[65px]" width={100} height={100} />
                 <h2 className="lg:text-[28px] xxsm:text-[22px] text-white">Weather Highlight</h2>
             </CardTitle>
             </CardHeader>
@@ -122,7 +124,7 @@ export default function HighlightCards() {
             
             <CardHeader className="pb-2 text-center">
                 <CardTitle>
-                <img src="/images/newspaper.png" alt="Newspaper Icon" className="inline-block lg:w-[80px] xxsm:w-[60px]" />
+                <SafeNewsImage src="/images/newspaper.png" alt="Newspaper Icon" className="inline-block lg:w-[80px] xxsm:w-[60px]" width={80} height={80} />
                 <h2 className="lg:text-[28px] xxsm:text-[22px] text-blue-600 mt-[3px]">Top Stories</h2>
                 </CardTitle>
             </CardHeader>

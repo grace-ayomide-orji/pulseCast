@@ -8,6 +8,20 @@ import { TiTimes } from "react-icons/ti";
 import { TbSearch } from "react-icons/tb";
 import { Loader2 } from "lucide-react";
 
+
+const commonSearches = [
+    "weather in Lagos",
+    "latest news today",
+    "stock market news",
+    "sports headlines",
+    "technology updates",
+    "political news",
+    "entertainment news",
+    "health articles",
+    "business news",
+    "science discoveries"
+];
+
 const Navbar = () => {
     const [width, setWidth] = useState(0)
     const [isTogglerOpen, setisTogglerOpen] = useState(false);
@@ -32,19 +46,6 @@ const Navbar = () => {
         { path: "/weather", linkText: 'Weather' },
         // { path: '/help-center', linkText: 'Help Center', dropdownLinks: [{ path: '/help-center/faqs', linkText: 'Frequently Asked Questions' }, { path: '/help-center/contact-us', linkText: 'Contact Us' }] },
     ]
-
-    const commonSearches = [
-        "weather in Lagos",
-        "latest news today",
-        "stock market news",
-        "sports headlines",
-        "technology updates",
-        "political news",
-        "entertainment news",
-        "health articles",
-        "business news",
-        "science discoveries"
-    ];
 
     // get device width
     useEffect(() => {

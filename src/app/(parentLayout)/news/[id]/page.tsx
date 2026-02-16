@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { Card, CardContent } from '@/components/ui/card';
 import { formatNewsDate } from '@/lib/dateUtils'; 
 import { cleanNewsContent } from '@/lib/contentCleaner';
+import SafeNewsImage from '@/components/SafeNewsImage';
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -57,9 +58,11 @@ export default async function NewsArticlePage({ params }: PageProps) {
           
           {article.imageUrl && (
             <div className="overflow-hidden w-full mb-6 sm:rounded-[20px] rounded-[10px] bg-gray-200">
-              <img
-                src={article.imageUrl  || "/favicon/pulsecast.png"} 
+              <SafeNewsImage
+                src={article.imageUrl}
                 alt={article.title}
+                width={700}
+                height={700}
                 className="w-full h-full object-fill"
               />
             </div>

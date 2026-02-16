@@ -8,6 +8,7 @@ import type { NewsData } from '@/lib/types';
 import { formatNewsDate } from '@/lib/dateUtils';
 import PaginationControls from "@/components/paginationControls";
 import { Loader } from "@/components/Loader";
+import SafeNewsImage from "@/components/SafeNewsImage";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -29,28 +30,27 @@ export default function SearchPage() {
 
   // Handle URL query parameters on page load
   useEffect(() => {
-    const urlQuery = searchParams.get('q');  
-    if (urlQuery && urlQuery !== query) {
+    const urlQuery = searchParams.get('q');
+    const urlPage = parseInt(searchParams.get('page') || '1');
+    
+    if (urlQuery && (urlQuery !== query || urlPage !== currentPage)) {
       setQuery(urlQuery);
-      updateSearch(urlQuery);
-      saveToHistory(urlQuery);
+      setCurrentPage(urlPage);
+      updateSearch(urlQuery, urlPage, ITEMS_PER_PAGE);
+      
+      // Inline the save logic
+      const filteredHistory = searchHistory.filter(item => item !== urlQuery);
+      const newHistory = [urlQuery, ...filteredHistory].slice(0, 5);
+      setSearchHistory(newHistory);
+      localStorage.setItem("searchHistory", JSON.stringify(newHistory));
     }
-  }, [searchParams, query, updateSearch]);
-  
-  // Save search to history
-  const saveToHistory = (searchQuery: string) => {
-    const filteredHistory = searchHistory.filter(item => item !== searchQuery);
-    const newHistory = [searchQuery, ...filteredHistory].slice(0, 5);
-    setSearchHistory(newHistory);
-    localStorage.setItem("searchHistory", JSON.stringify(newHistory));
-  };
+  }, [searchParams, query, currentPage, updateSearch, searchHistory]);
 
   const handleHistoryClick = (historyQuery: string) => {
     setQuery(historyQuery);
     setCurrentPage(1);
     router.push(`/search?q=${encodeURIComponent(historyQuery)}&page=1`);
     updateSearch(historyQuery, 1, ITEMS_PER_PAGE);
-    saveToHistory(historyQuery);
   };
 
   const handlePageChange = (page: number) => {
@@ -125,13 +125,12 @@ export default function SearchPage() {
                         {/* News Image */}
                         {news.imageUrl && (
                             <div className="w-full overflow-hidden rounded-lg h-[170px] md:w-[300px]">
-                                <img
-                                    src={news.imageUrl || "/favicon/pulsecast.png"}
+                                <SafeNewsImage
+                                    src={news.imageUrl}
                                     alt={news.title}
+                                    width={300}
+                                    height={170}
                                     className="object-cover w-full h-full"
-                                    onError={(e) => {
-                                    e.currentTarget.src = "/favicon/pulsecast.png";
-                                  }}
                                 />
                             </div>
                         )}

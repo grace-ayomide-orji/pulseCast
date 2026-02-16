@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import Image from "next/image";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TbSearch, TbRefresh, TbLoader } from "react-icons/tb";
 import { useData } from "@/lib/DataContext";
@@ -82,7 +83,7 @@ export default function WeatherPage() {
 
                 <CardHeader className="pb-2 text-center">
                     <CardTitle>
-                        <img src="/images/sun_cloud.png" alt="Cloud and Sun Icon" className="inline-block w-[100px]" />
+                        <Image src="/images/sun_cloud.png" alt="Cloud and Sun Icon" className="inline-block w-[100px]" width={100} height={100} />
                         <h2 className="lg:text-[28px] text-white">Weather Highlight</h2>
                     </CardTitle>
                 </CardHeader>

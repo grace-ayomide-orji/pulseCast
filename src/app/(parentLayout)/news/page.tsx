@@ -8,6 +8,7 @@ import type { NewsData } from '@/lib/types';
 import { formatNewsDate } from '@/lib/dateUtils';
 import PaginationControls from "@/components/paginationControls";
 import { Loader } from "@/components/Loader";
+import SafeNewsImage from "@/components/SafeNewsImage";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -89,7 +90,7 @@ export default function NewsPage() {
             </div>
 
             {/* Mobile: Separate line below buttons */}
-            {newsPagination && (
+            {!isLoading && newsPagination && (
               <div className="md:hidden mt-2 text-sm text-gray-600">
                 ({newsPagination.totalResults} total articles)
               </div>
@@ -140,13 +141,12 @@ export default function NewsPage() {
                       {/* News Image */}
                       {news.imageUrl && (
                           <div className="w-full overflow-hidden rounded-lg h-[170px] md:w-[300px]">
-                              <img
-                                  src={news.imageUrl || "/favicon/pulsecast.png"}
+                              <SafeNewsImage
+                                  src={news.imageUrl}
                                   alt={news.title}
+                                  width={300}
+                                  height={170}
                                   className="object-cover w-full h-full"
-                                  onError={(e) => {
-                                    e.currentTarget.src = "/favicon/pulsecast.png";
-                                  }}
                               />
                           </div>
                       )}

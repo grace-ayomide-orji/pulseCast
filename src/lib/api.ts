@@ -130,6 +130,8 @@ export async function fetchCityByIP(): Promise<string | null> {
 
 export async function TopHeadlistfetchNews(source: string = "", page: number = 1, pageSize: number = 10): Promise<{ articles: NewsData[]; totalResults: number } | { error: string }> {
   const sources = source.trim() !== "" ? source : 'bbc-news,cnn,reuters,associated-press,the-verge';
+  const PROBLEMATIC_DOMAINS = ['politico.com', 'news-journalonline.com', 'trueachievements.com', 'yourtango.com'];
+  
   try {
     const url = `https://newsapi.org/v2/top-headlines?sources=${sources}&page=${page}&pageSize=${pageSize}&apiKey=${process.env.NEWSAPI_KEY}`;
     const res = await fetch(url, { next: { revalidate: 300 } }); // Cache for 5 minutes
@@ -142,17 +144,25 @@ export async function TopHeadlistfetchNews(source: string = "", page: number = 1
     const data: NewsApiResponse = await res.json();
     const articles = data.articles
       .filter((article: NewsApiArticle) => article.title && article.description && article.url && article.content && article.url && article.source.name)
-      .map((article: NewsApiArticle) => ({
-        id:generateIdFromUrl(article.url),
-        title: article.title,
-        description: article.description,
-        content:article.content,
-        url: article.url,
-        source: article.source.name,
-        sourceId: article.source.id, 
-        imageUrl:article.urlToImage,
-        publishedAt: article.publishedAt
-      }));
+      .map((article: NewsApiArticle) => {
+        // Nullify images from problematic domains to avoid 403/406 errors
+        let imageUrl = article.urlToImage;
+        if (imageUrl && PROBLEMATIC_DOMAINS.some(domain => imageUrl?.includes(domain))) {
+          imageUrl = null;
+        }
+        
+        return {
+          id: generateIdFromUrl(article.url),
+          title: article.title,
+          description: article.description,
+          content: article.content,
+          url: article.url,
+          source: article.source.name,
+          sourceId: article.source.id, 
+          imageUrl: imageUrl,
+          publishedAt: article.publishedAt
+        };
+      });
       
     return articles.length > 0 ? {
       articles : articles,
@@ -174,6 +184,8 @@ export async function AllfetchNews(
     country?: string;
   } = {}
 ): Promise<{ articles: NewsData[]; totalResults: number } | { error: string }> {
+  const PROBLEMATIC_DOMAINS = ['politico.com', 'news-journalonline.com', 'trueachievements.com', 'yourtango.com'];
+  
   try {
     const { language = "en", sortBy = "publishedAt", pageSize = 20, page = 1, country = "" } = options;
     let url: string;
@@ -195,17 +207,25 @@ export async function AllfetchNews(
     const data: NewsApiResponse = await res.json(); 
     const articles = data.articles
       .filter((article: NewsApiArticle) => article.title && article.description && article.url && article.content && article.url && article.source.name)
-      .map((article: NewsApiArticle) => ({
-        id:generateIdFromUrl(article.url),
-        title: article.title,
-        description: article.description,
-        content:article.content,
-        url: article.url,
-        source: article.source.name,
-        sourceId: article.source.id, 
-        imageUrl:article.urlToImage,
-        publishedAt: article.publishedAt
-      }));  
+      .map((article: NewsApiArticle) => {
+        // Nullify images from problematic domains to avoid 403/406 errors
+        let imageUrl = article.urlToImage;
+        if (imageUrl && PROBLEMATIC_DOMAINS.some(domain => imageUrl?.includes(domain))) {
+          imageUrl = null;
+        }
+        
+        return {
+          id: generateIdFromUrl(article.url),
+          title: article.title,
+          description: article.description,
+          content: article.content,
+          url: article.url,
+          source: article.source.name,
+          sourceId: article.source.id, 
+          imageUrl: imageUrl,
+          publishedAt: article.publishedAt
+        };
+      });  
     return articles.length > 0 ? {
       articles: articles,
       totalResults: data.totalResults,
@@ -225,6 +245,8 @@ export async function searchNews(
     country?: string;
   } = {}
 ): Promise<NewsData[] | { error: string }> {
+  const PROBLEMATIC_DOMAINS = ['politico.com', 'news-journalonline.com', 'trueachievements.com', 'yourtango.com'];
+  
   try {
     const { language = "en", sortBy = "publishedAt", pageSize = 20, country = "" } = options;
     
@@ -248,17 +270,25 @@ export async function searchNews(
     
     const articles = data.articles
       .filter((article: NewsApiArticle) => article.title && article.description && article.url && article.source.name)
-      .map((article: NewsApiArticle) => ({
-        id: generateIdFromUrl(article.url),
-        title: article.title,
-        description: article.description,
-        content: article.content,
-        url: article.url,
-        source: article.source.name,
-        sourceId: article.source.id, 
-        imageUrl: article.urlToImage,
-        publishedAt: article.publishedAt
-      }));
+      .map((article: NewsApiArticle) => {
+        // Nullify images from problematic domains to avoid 403/406 errors
+        let imageUrl = article.urlToImage;
+        if (imageUrl && PROBLEMATIC_DOMAINS.some(domain => imageUrl?.includes(domain))) {
+          imageUrl = null;
+        }
+        
+        return {
+          id: generateIdFromUrl(article.url),
+          title: article.title,
+          description: article.description,
+          content: article.content,
+          url: article.url,
+          source: article.source.name,
+          sourceId: article.source.id, 
+          imageUrl: imageUrl,
+          publishedAt: article.publishedAt
+        };
+      });
     
     return articles.length >= 1 ? articles : { error: "No articles found" };
     
