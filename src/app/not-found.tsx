@@ -1,8 +1,9 @@
 import Link from "next/link"
+import Image from "next/image"
 export default function NotFound(){
     return(
         <div className="w-[100vw] h-[100vh] bg-primary-color flex flex-col justify-center items-center text-center px-[10px]">
-            <img  src="/images/404.png" alt="404 image" className="md:w-[300px] w-[200px] object-contain"/>
+            <Image src="/images/404.png" alt="Page not found illustration" className="md:w-[300px] w-[200px] object-contain" width={300} height={300} />
             <div>
                 <h1 className="md:text-[30px] text-[20px] text-white">Oops! This page took a wrong turn. 🤔 404</h1>
                 <p className="text-white sm:text-[15px] text-sm">It seems the page you&apos;re looking for isn&apos;t here. Maybe it&apos;s off on a coffee break? ☕</p>
